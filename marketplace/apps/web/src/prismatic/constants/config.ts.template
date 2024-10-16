@@ -1,0 +1,25 @@
+/**
+ * Update the values below with your own Prismatic organization ID, customer external ID, user ID and signing secret.
+ * See https://prismatic.io/docs/installing-embedded/ for information on how to get these values.
+ */
+
+import { PrismaticConfig } from './types';
+
+/**
+ * Replace this with a value a signing key you get from https://app.prismatic.io/settings/embedded/
+ */
+const signingKey = "\\\`{{ PRIVATE_KEY }}\\\`";
+
+const config: PrismaticConfig = {
+  refreshToken: `{{ REFRESH_TOKEN }}`,
+  prismaticUrl: 'https://app.prismatic.io',
+  sub: 'example.customer@{{}}-customer.com',
+  organization:
+    `{{ ORG_ID }}`,
+  customer: '123456',
+  name: '{{ ORG_NAME }}',
+  signingKey,
+  role: 'admin'
+};
+
+export default config;
