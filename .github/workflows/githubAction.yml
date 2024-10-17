@@ -1,0 +1,56 @@
+name: Publish Demo CI/CD
+
+          # Only run when code lands on the main branch
+on:
+            push:
+              branches:
+                - main
+          
+jobs:
+            # Build and publish Demo component
+            demo_component:
+              runs-on: ubuntu-latest
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/setup-node@v4.0.2
+                - name: Install dependencies
+                  run: yarn install
+                  working-directory: demo/component
+                - name: Build Demo Component
+                  run: yarn build
+                  working-directory: demo/component
+                - name: Publish Demo Component
+                  uses: prismatic-io/component-publisher@v1.1
+                  with:
+                    COMPONENT_PATH: demo/component
+                    PRISMATIC_URL: https://app.prismatic.io
+                    PRISM_REFRESH_TOKEN: FWy_ShYZ2ob22B-q6QsgxSmkXWdBhpMlfOkVnbO_CC7U6
+
+          
+            # Publish Demo Github Actions Test integration after components are published
+            demo_github_actions_test_integration:
+              runs-on: ubuntu-latest
+              needs: [demo_component]
+              steps:
+                - uses: actions/checkout@v4
+                - id: filter
+                  uses: dorny/paths-filter@v3.0.2
+                  with:
+                    filters: |
+                      integration_or_components:
+                        - 'demo_integration.yml'
+                        - 'demo/component/**'
+                - name: Publish Integration Component
+                  uses: prismatic-io/integration-publisher@v1.1
+                  with:
+                    PATH_TO_YML: demo_integration.yml
+                    PRISMATIC_URL: https://app.prismatic.io
+                    PRISM_REFRESH_TOKEN: FWy_ShYZ2ob22B-q6QsgxSmkXWdBhpMlfOkVnbO_CC7U6
+
+                    INTEGRATION_ID: SW50ZWdyYXRpb246NzA1MzYxMDEtMTQ3Zi00MTg1LWJhNjQtZmMyZDI3MmYxOTcz
+                    MAKE_AVAILABLE_IN_MARKETPLACE: false
+                  if: steps.filter.outputs.integration_or_components == 'true'
+                - name: Note that integration didn't change
+                  run: |
+                    echo "No changes detected for integration or underlying components" >> "$GITHUB_STEP_SUMMARY"
+                  if: steps.filter.outputs.integration_or_components != 'true'

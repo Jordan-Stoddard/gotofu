@@ -1,0 +1,463 @@
+category: HR
+configPages:
+  - elements:
+      - type: configVar
+        value: BambooHR Connection
+      - type: configVar
+        value: SFTP Connection
+    name: Authentication
+    tagline: ''
+  - elements:
+      - type: configVar
+        value: Example String Input
+      - type: configVar
+        value: Example Picklist
+      - type: configVar
+        value: Example Schedule Picker
+      - type: configVar
+        value: Example Toggle Input
+    name: Settings
+    tagline: ''
+    userLevelConfigured: false
+defaultInstanceProfile: Default Instance Profile
+definitionVersion: 7
+description: Enrich Employee Data from BambooHR with Payroll Calculators
+documentation: ''
+endpointType: flow_specific
+flows:
+  - description: ''
+    endpointSecurityType: customer_optional
+    isSynchronous: false
+    name: On Deploy, Ingest BambooHR Employees
+    steps:
+      - action:
+          component:
+            isPublic: true
+            key: management-triggers
+            version: 8
+          key: instanceDeploy
+        description: ''
+        inputs: {}
+        isTrigger: true
+        name: On Deploy Trigger
+      - action:
+          component:
+            isPublic: true
+            key: bamboohr
+            version: 19
+          key: getEmployeeDirectory
+        description: ''
+        inputs:
+          connection:
+            type: configVar
+            value: BambooHR Connection
+        name: List Employees
+      - action:
+          component:
+            isPublic: true
+            key: csv
+            version: 5
+          key: generateFromObject
+        description: ''
+        inputs:
+          delimiter:
+            type: value
+            value: ','
+          includeHeader:
+            type: value
+            value: 'true'
+          inputArray:
+            type: reference
+            value: listEmployees.results.employees
+        name: Generate CSV From Array
+      - action:
+          component:
+            isPublic: true
+            key: sftp
+            version: 39
+          key: writeFile
+        description: ''
+        inputs:
+          connection:
+            type: configVar
+            value: SFTP Connection
+          data:
+            type: reference
+            value: generateCsvFromArray.results
+          debug:
+            type: value
+            value: 'false'
+          outputPath:
+            type: value
+            value: /calculator
+        name: Write File to Calculator
+      - action:
+          component:
+            isPublic: true
+            key: sleep
+            version: 7
+          key: sleep
+        description: ''
+        inputs:
+          ms:
+            type: value
+            value: '1000'
+        name: Sleep
+      - action:
+          component:
+            isPublic: true
+            key: sftp
+            version: 39
+          key: readFile
+        description: ''
+        inputs:
+          connection:
+            type: configVar
+            value: SFTP Connection
+          debug:
+            type: value
+            value: 'false'
+          inputPath:
+            type: value
+            value: /calculator
+          returnBuffer:
+            type: value
+            value: 'false'
+        name: Read File From Calculator
+      - action:
+          component:
+            isPublic: true
+            key: change-data-format
+            version: 38
+          key: deserializeFromCsv
+        description: ''
+        inputs:
+          data:
+            type: value
+            value: test
+          isHeader:
+            type: value
+            value: 'true'
+          unFlattenCsvKeys:
+            type: value
+            value: 'false'
+        name: Convert CSV to JSON
+      - action:
+          component:
+            isPublic: true
+            key: loop
+            version: 20
+          key: loopOverItems
+        description: ''
+        inputs:
+          items:
+            type: reference
+            value: convertCsvToJson.results
+        name: Loop Over Enriched Employee Data
+        steps:
+          - action:
+              component:
+                isPublic: true
+                key: bamboohr
+                version: 19
+              key: updateEmployee
+            description: ''
+            inputs:
+              connection:
+                type: configVar
+                value: BambooHR Connection
+              employeeFieldValues:
+                type: complex
+                value: []
+              employeeId:
+                type: reference
+                value: loopOverEnrichedEmployeeData.currentItem.id
+            name: Update Employee
+  - description: ''
+    endpointSecurityType: customer_optional
+    isSynchronous: false
+    name: On Schedule, Check for New Employees
+    steps:
+      - action:
+          component:
+            isPublic: true
+            key: schedule-triggers
+            version: 6
+          key: schedule
+        description: ''
+        inputs: {}
+        isTrigger: true
+        name: On Deploy Trigger
+        schedule:
+          meta:
+            scheduleType: day
+            timeZone: ''
+          type: value
+          value: 00 00 */1 * *
+      - action:
+          component:
+            isPublic: true
+            key: persist-data
+            version: 29
+          key: getCrossFlowValue
+        description: ''
+        inputs:
+          defaultValueInput:
+            type: value
+            value: ''
+          keyInput:
+            type: value
+            value: test
+        name: Get Last Run Time
+      - action:
+          component:
+            isPublic: true
+            key: bamboohr
+            version: 19
+          key: getEmployeeDirectory
+        description: Last Run Time
+        inputs:
+          connection:
+            type: configVar
+            value: BambooHR Connection
+        name: Check for Employees Since
+      - action:
+          component:
+            isPublic: true
+            key: branch
+            version: 37
+          key: branchOnExpression
+        branches:
+          - name: 'Yes'
+            steps:
+              - action:
+                  component:
+                    isPublic: true
+                    key: csv
+                    version: 5
+                  key: generateFromObject
+                description: ''
+                inputs:
+                  delimiter:
+                    type: value
+                    value: ','
+                  includeHeader:
+                    type: value
+                    value: 'true'
+                  inputArray:
+                    type: reference
+                    value: checkForEmployeesSince.results.employees
+                name: Generate CSV From Array
+              - action:
+                  component:
+                    isPublic: true
+                    key: sftp
+                    version: 39
+                  key: writeFile
+                description: ''
+                inputs:
+                  connection:
+                    type: configVar
+                    value: SFTP Connection
+                  data:
+                    type: reference
+                    value: generateCsvFromArray.results
+                  debug:
+                    type: value
+                    value: 'false'
+                  outputPath:
+                    type: value
+                    value: /calculator
+                name: Write File To Calculator
+              - action:
+                  component:
+                    isPublic: true
+                    key: sleep
+                    version: 7
+                  key: sleep
+                description: ''
+                inputs:
+                  ms:
+                    type: value
+                    value: '1000'
+                name: Sleep
+              - action:
+                  component:
+                    isPublic: true
+                    key: sftp
+                    version: 39
+                  key: readFile
+                description: ''
+                inputs:
+                  connection:
+                    type: configVar
+                    value: SFTP Connection
+                  debug:
+                    type: value
+                    value: 'false'
+                  inputPath:
+                    type: value
+                    value: /calculator
+                  returnBuffer:
+                    type: value
+                    value: 'false'
+                name: Read File from Calculator
+              - action:
+                  component:
+                    isPublic: true
+                    key: change-data-format
+                    version: 38
+                  key: deserializeFromCsv
+                description: ''
+                inputs:
+                  data:
+                    type: value
+                    value: test
+                  isHeader:
+                    type: value
+                    value: 'true'
+                  unFlattenCsvKeys:
+                    type: value
+                    value: 'false'
+                name: Convert CSV to JSON
+              - action:
+                  component:
+                    isPublic: true
+                    key: loop
+                    version: 20
+                  key: loopOverItems
+                description: ''
+                inputs:
+                  items:
+                    type: reference
+                    value: convertCsvToJson.results
+                name: Loop Over Enriched Employee Data
+                steps:
+                  - action:
+                      component:
+                        isPublic: true
+                        key: bamboohr
+                        version: 19
+                      key: updateEmployee
+                    description: ''
+                    inputs:
+                      connection:
+                        type: configVar
+                        value: BambooHR Connection
+                      employeeFieldValues:
+                        type: complex
+                        value: []
+                      employeeId:
+                        type: reference
+                        value: loopOverEnrichedEmployeeData.currentItem.id
+                    name: Update Employee
+          - name: Else
+            steps: []
+        description: ''
+        inputs:
+          conditions:
+            type: complex
+            value:
+              - name: 'Yes'
+                type: complex
+                value:
+                  - and
+                  - - isTrue
+                    - name: ''
+                      type: value
+                      value: test
+        name: New Employees Exist?
+name: BambooHR
+requiredConfigVars:
+  - connection:
+      component:
+        isPublic: true
+        key: bamboohr
+        version: 19
+      key: apiKey
+    dataType: connection
+    inputs:
+      apiKey:
+        type: value
+        value: ''
+      companyDomain:
+        type: value
+        value: ''
+    key: BambooHR Connection
+    onPremiseConnectionConfig: disallowed
+    orgOnly: false
+  - dataType: string
+    defaultValue: ''
+    description: User can write some information here
+    key: Example String Input
+    orgOnly: false
+  - dataType: picklist
+    defaultValue: ''
+    description: User can pick from several options
+    key: Example Picklist
+    orgOnly: false
+    pickList:
+      - Option 1
+      - Option 2
+      - Option 3
+  - dataType: schedule
+    defaultValue: ''
+    description: User can choose a schedule
+    key: Example Schedule Picker
+    orgOnly: false
+    scheduleType: none
+  - dataType: boolean
+    defaultValue: 'false'
+    description: User can choose to say yes or no to some behavior
+    key: Example Toggle Input
+    orgOnly: false
+  - connection:
+      component:
+        isPublic: true
+        key: sftp
+        version: 39
+      key: basic
+    dataType: connection
+    inputs:
+      host:
+        meta:
+          orgOnly: false
+          visibleToCustomerDeployer: true
+          visibleToOrgDeployer: true
+        type: value
+        value: '123'
+      password:
+        meta:
+          orgOnly: false
+          visibleToCustomerDeployer: true
+          visibleToOrgDeployer: true
+        type: value
+        value: '123'
+      port:
+        meta:
+          orgOnly: false
+          visibleToCustomerDeployer: true
+          visibleToOrgDeployer: true
+        type: value
+        value: '22'
+      timeout:
+        meta:
+          orgOnly: false
+          visibleToCustomerDeployer: true
+          visibleToOrgDeployer: true
+        type: value
+        value: '3000'
+      username:
+        meta:
+          orgOnly: false
+          visibleToCustomerDeployer: true
+          visibleToOrgDeployer: true
+        type: value
+        value: '123'
+    key: SFTP Connection
+    meta:
+      visibleToCustomerDeployer: false
+      visibleToOrgDeployer: true
+    onPremiseConnectionConfig: disallowed
+    orgOnly: true
+
