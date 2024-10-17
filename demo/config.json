@@ -1,0 +1,63 @@
+{
+  "organization": {
+    "name": "GoTofu Demo",
+    "owner": {
+      "name": "GoTofu Admin",
+      "email": "jordan.stoddard+gotofu@prismatic.io"
+    },
+    "icon": "icon.png",
+    "customers": [
+      {
+        "name": "DemoWorks Company",
+        "embeddedDesigner": true,
+        "externalId": "123456"
+      },
+      {
+        "name": "Payroll Connect"
+      },
+      {
+        "name": "SwiftPay"
+      }
+    ],
+    "marketplaceName": "Integration Marketplace",
+    "marketingSiteConfig": {
+      "useCaseConnector": "Workday",
+      "ctaStatement": "The First Global Payroll Platform, Built for the Payroll Processor",
+      "ctaSubTitle": "Save Time, Attract More Clients, Boost Security with Our AI Solution.",
+      "ctaButtonText": "Join Waitlist"
+    },
+    "embeddedThemeColor": "#0b698b"
+  },
+  "integrations": [
+    {
+      "definition": "salesforce.yml",
+      "instance": false,
+      "marketplace": true
+    },
+    {
+      "definition": "slack.yml",
+      "instance": true,
+      "marketplace": true
+    },
+    {
+      "definition": "teams.yml",
+      "instance": true,
+      "marketplace": true
+    },
+    {
+      "definition": "bamboo-hr.yml",
+      "instance": false,
+      "marketplace": true
+    },
+    {
+      "definition": "sharepoint.yml",
+      "instance": false,
+      "marketplace": true
+    }
+  ],
+  "component": {
+    "name": "GoTofu",
+    "key": "demo-component",
+    "description": "Interact with the GoTofu API"
+  }
+}
